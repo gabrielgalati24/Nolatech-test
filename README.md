@@ -77,7 +77,10 @@ Luego, inicia el frontend en la carpeta `/frontend`:
 ```bash
 npm run dev
 ```
-
+test 
+```bash
+npm run test
+```
 
 
 - **server/**: Contiene el backend (Express + MongoDB).
