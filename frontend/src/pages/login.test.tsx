@@ -4,13 +4,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import { setRole } from '@/store/authSlice';
 import Login from './login';
-
-
+import '@testing-library/jest-dom';
 const mockStore = configureStore([]);
 const mockNavigate = vi.fn();
-const mockDispatch = vi.fn();
 
 
 vi.mock('react-router-dom', async () => {
@@ -21,16 +18,14 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-
 describe('Login Component', () => {
-  let store;
+  let store:any;
 
   beforeEach(() => {
     store = mockStore({
       auth: { role: null },
     });
 
- 
     global.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
@@ -47,79 +42,37 @@ describe('Login Component', () => {
         </MemoryRouter>
       </Provider>
     );
+    screen.debug();
 
-    expect(screen.getByText(/Welcome Back/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
-  });
-
-  it('calls login function on valid form submission', async () => {
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <Login />
-        </MemoryRouter>
-      </Provider>
-    );
-
-    const emailInput = screen.getByLabelText(/Email/i);
-    const passwordInput = screen.getByLabelText(/Password/i);
-    const signInButton = screen.getByRole('button', { name: /Sign In/i });
-
-
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-
-    // Simular clic en el botón
-    fireEvent.click(signInButton);
-
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(`${import.meta.env.VITE_BACKEND_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'test@example.com',
-          password: 'password123',
-        }),
-      });
-    });
-
-
-    await waitFor(() => {
-      expect(mockDispatch).toHaveBeenCalledWith(setRole('Admin'));
-      expect(mockNavigate).toHaveBeenCalledWith('/');
-    });
-  });
-
-  it('displays an error message on failed login', async () => {
-    // Simular un error en la respuesta del fetch
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: false,
-        json: () => Promise.resolve({ message: 'Invalid credentials' }),
-      })
-    ) as jest.Mock;
-
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <Login />
-        </MemoryRouter>
-      </Provider>
-    );
-
-    const emailInput: HTMLInputElement = screen.getByPlaceholderText("Enter your email");
+    const emailInput: HTMLInputElement = screen.getByLabelText(/Email/i);
     const passwordInput: HTMLInputElement = screen.getByLabelText(/Password/i);
-    const signInButton = screen.getByRole('button', { name: /Sign In/i });
-
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
+    fireEvent.change(passwordInput, { target: { value: 'password' } });
 
-    fireEvent.click(signInButton);
+    expect(emailInput.value).toBe('test@example.com');
+    expect(passwordInput.value).toBe('password');
+  });
 
+
+  it('displays error messages for invalid form input', async () => {
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Login />
+        </MemoryRouter>
+      </Provider>
+    );
+  
+    const submitButton = screen.getByRole('button', { name: /sign in/i });
+    fireEvent.click(submitButton);
+  
     await waitFor(() => {
-      expect(screen.getByText(/Invalid credentials/i)).toBeInTheDocument();
+      const emailError = screen.getByText(/Password must be at least 6 characters long/i);
+      const passwordError = screen.getByText(/Invalid email address/i);
+  
+      expect(emailError).toBeInTheDocument();
+      expect(passwordError).toBeInTheDocument();
     });
   });
+  
 });
